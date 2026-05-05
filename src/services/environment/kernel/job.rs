@@ -1,4 +1,4 @@
-use crate::app::Result;
+use crate::app::{Result, RuntimeError};
 #[cfg(target_os = "windows")]
 use std::collections::HashMap;
 #[cfg(target_os = "windows")]
@@ -26,8 +26,9 @@ pub struct JobHandle {
 impl JobHandle {
     pub fn create() -> Result<Self> {
         unsafe {
-            let handle = CreateJobObjectW(None, None)
-                .map_err(|error| format!("Failed to create job object: {}", error))?;
+            let handle = CreateJobObjectW(None, None).map_err(|error| {
+                RuntimeError::Internal(format!("Failed to create job object: {}", error))
+            })?;
 
             let mut info: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = std::mem::zeroed();
             info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
@@ -38,7 +39,9 @@ impl JobHandle {
                 &info as *const _ as *const _,
                 std::mem::size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32,
             )
-            .map_err(|error| format!("Failed to set job object information: {}", error))?;
+            .map_err(|error| {
+                RuntimeError::Internal(format!("Failed to set job object information: {}", error))
+            })?;
 
             Ok(Self { handle })
         }
@@ -47,10 +50,13 @@ impl JobHandle {
     pub fn assign_process(&self, pid: u32) -> Result<()> {
         unsafe {
             let process_handle = OpenProcess(PROCESS_SET_QUOTA | PROCESS_TERMINATE, false, pid)
-                .map_err(|error| format!("Failed to open process {}: {}", pid, error))?;
+                .map_err(|error| {
+                    RuntimeError::Internal(format!("Failed to open process {}: {}", pid, error))
+                })?;
 
-            AssignProcessToJobObject(self.handle, process_handle)
-                .map_err(|error| format!("Failed to assign process to job: {}", error))?;
+            AssignProcessToJobObject(self.handle, process_handle).map_err(|error| {
+                RuntimeError::Internal(format!("Failed to assign process to job: {}", error))
+            })?;
 
             let _ = CloseHandle(process_handle);
             Ok(())
