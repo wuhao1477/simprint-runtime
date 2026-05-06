@@ -41,13 +41,13 @@ jobs:
           rustc --version
           cargo --version
 
-      - name: Resolve release version
+      - name: Prepare version from tag
         id: release
         shell: powershell
         run: |
-          $version = node .\scripts\resolve-release-version.mjs
+          $version = node .\scripts\prepare-version.mjs
           if (-not $version) {
-            throw "Failed to resolve release version"
+            throw "Failed to prepare release version"
           }
           "version=$version" >> $env:GITHUB_OUTPUT
 
