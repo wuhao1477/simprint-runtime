@@ -35,8 +35,11 @@ jobs:
         with:
           node-version: 20
 
-      - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - name: Verify Rust toolchain
+        shell: powershell
+        run: |
+          rustc --version
+          cargo --version
 
       - name: Resolve release version
         id: release
