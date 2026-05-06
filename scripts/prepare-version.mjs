@@ -8,7 +8,7 @@ function normalizeTagToVersion(input) {
   if (!raw) return null;
   const version = raw.startsWith('v') ? raw.slice(1) : raw;
   if (!/^\d+\.\d+\.\d+([\-+].+)?$/.test(version)) {
-    console.log(
+    console.error(
       `[prepare-version] Ignore non-version input "${raw}". Expected like v1.2.3 or 1.2.3`
     );
     return null;
@@ -40,7 +40,7 @@ const version =
   normalizeTagToVersion(process.env.GITHUB_REF_NAME);
 
 if (!version) {
-  console.log('[prepare-version] No tag/version detected. Skipping version update.');
+  console.error('[prepare-version] No tag/version detected. Skipping version update.');
   process.exit(0);
 }
 
@@ -50,9 +50,9 @@ const { changed, content } = updateCargoTomlVersion(cargoToml, version);
 
 if (changed) {
   await fs.writeFile(cargoTomlPath, content, 'utf8');
-  console.log(`[prepare-version] Updated Cargo.toml -> package.version=${version}`);
+  console.error(`[prepare-version] Updated Cargo.toml -> package.version=${version}`);
 } else {
-  console.log(`[prepare-version] Kept Cargo.toml -> package.version=${version}`);
+  console.error(`[prepare-version] Kept Cargo.toml -> package.version=${version}`);
 }
 
 process.stdout.write(version);
