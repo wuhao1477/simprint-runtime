@@ -1,0 +1,110 @@
+name: runtime-build-windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: "Release notes stored in latest.json"
+        required: false
+        default: ""
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: [self-hosted, Windows]
+    permissions:
+      contents: read
+    env:
+      RELEASE_NOTES: ${{ github.event.inputs.notes || '' }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+      TARGET_TRIPLE: x86_64-pc-windows-msvc
+      PROTOCOL_VERSION: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Resolve release version
+        id: release
+        shell: powershell
+        run: |
+          $version = node .\scripts\resolve-release-version.mjs
+          if (-not $version) {
+            throw "Failed to resolve release version"
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Build runtime binary
+        run: cargo build --release --bin simprint-runtime
+
+      - name: Generate latest.json
+        shell: powershell
+        env:
+          BINARY_PATH: target/release/simprint-runtime.exe
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          OUTPUT_PATH: latest.json
+        run: node .\scripts\generate-latest-json.mjs
+
+      - name: Upload runtime binary to R2 storage
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          if (-not (Get-Command aws -ErrorAction SilentlyContinue)) {
+            Write-Error "aws CLI not found. Please install AWS CLI v2 and ensure 'aws' is in PATH."
+          }
+
+          $version = "${{ steps.release.outputs.version }}"
+          $accountId = "${{ env.R2_ACCOUNT_ID }}"
+          $bucket = "${{ env.R2_BUCKET }}"
+          $endpoint = "https://${accountId}.r2.cloudflarestorage.com"
+          $destination = "s3://${bucket}/simprint-runtime/${version}/simprint-runtime.exe"
+
+          $env:AWS_ACCESS_KEY_ID = "${{ env.R2_ACCESS_KEY_ID }}"
+          $env:AWS_SECRET_ACCESS_KEY = "${{ env.R2_SECRET_ACCESS_KEY }}"
+          $env:AWS_EC2_METADATA_DISABLED = "true"
+
+          Write-Host "Uploading runtime binary to R2: $destination"
+          aws s3 cp "target/release/simprint-runtime.exe" $destination --endpoint-url $endpoint --region auto
+
+      - name: Upload latest.json to R2 storage
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          if (-not (Get-Command aws -ErrorAction SilentlyContinue)) {
+            Write-Error "aws CLI not found. Please install AWS CLI v2 and ensure 'aws' is in PATH."
+          }
+
+          $accountId = "${{ env.R2_ACCOUNT_ID }}"
+          $bucket = "${{ env.R2_BUCKET }}"
+          $endpoint = "https://${accountId}.r2.cloudflarestorage.com"
+          $destination = "s3://${bucket}/simprint-runtime/latest.json"
+
+          $env:AWS_ACCESS_KEY_ID = "${{ env.R2_ACCESS_KEY_ID }}"
+          $env:AWS_SECRET_ACCESS_KEY = "${{ env.R2_SECRET_ACCESS_KEY }}"
+          $env:AWS_EC2_METADATA_DISABLED = "true"
+
+          Write-Host "Uploading latest.json to R2: $destination"
+          aws s3 cp "latest.json" $destination --endpoint-url $endpoint --region auto
+
+      - name: Upload latest.json artifact
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: latest-json
+          path: latest.json
