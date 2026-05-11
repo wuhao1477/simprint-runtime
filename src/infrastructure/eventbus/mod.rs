@@ -12,7 +12,8 @@ pub use global::{
     EnvConnectionPayload, eventbus_manager, get_eventbus_manager, init_eventbus_manager,
 };
 pub use manager::{
-    AccountConfig, AuthInfo, EventBusManager, FingerprintConfig, LaunchConfig, UserInfo,
+    AccountConfig, AuthInfo, CookieGroup, EventBusManager, FingerprintConfig, LaunchConfig,
+    UserInfo,
 };
 pub use message::{HandshakeData, Message, MessageType};
 pub use topics::Topic;

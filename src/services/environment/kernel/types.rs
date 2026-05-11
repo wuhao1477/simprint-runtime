@@ -1,4 +1,4 @@
-use crate::infrastructure::eventbus::{AccountConfig, FingerprintConfig};
+use crate::infrastructure::eventbus::{AccountConfig, CookieGroup, FingerprintConfig};
 use crate::services::environment::EnvironmentStatus;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -24,6 +24,8 @@ pub struct EnvironmentStartRequest {
     pub exe_path: String,
     pub env_uuid: String,
     pub user_data_dir: String,
+    pub cookies: Option<Vec<CookieGroup>>,
+    pub urls: Option<Vec<String>>,
     pub proxy: Option<BrowserProxyConfigPayload>,
     pub fingerprint_config: Option<FingerprintConfig>,
     pub accounts: Option<Vec<AccountConfig>>,

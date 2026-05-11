@@ -71,6 +71,8 @@ pub struct LaunchConfig {
     pub kernel_version: Option<String>,
     pub extensions: Option<Vec<String>>,
     pub custom_flags: Option<HashMap<String, String>>,
+    pub cookies: Option<Vec<CookieGroup>>,
+    pub urls: Option<Vec<String>>,
     pub fingerprint_config: Option<FingerprintConfig>,
     pub accounts: Option<Vec<AccountConfig>>,
 }
@@ -94,6 +96,12 @@ pub struct AccountConfig {
     pub url: String,
     pub username: String,
     pub password: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CookieGroup {
+    pub site: String,
+    pub cookie_text: String,
 }
 
 type DisconnectHandler = Arc<dyn Fn(String) + Send + Sync>;

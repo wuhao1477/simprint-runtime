@@ -42,6 +42,8 @@ pub async fn launch_browser(
         kernel_version: None,
         extensions: None,
         custom_flags: None,
+        cookies: request.cookies.clone(),
+        urls: request.urls.clone(),
         fingerprint_config: request.fingerprint_config.clone(),
         accounts: request.accounts.clone(),
     };
