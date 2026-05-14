@@ -58,17 +58,6 @@ High-value contribution areas include:
 - Windows packaging and release automation improvements
 - Documentation around runtime responsibilities and client integration
 
-Useful entry points when exploring the codebase:
-
-- `src/main.rs`
-- `src/lib.rs`
-- `src/app`
-- `src/services`
-- `src/infrastructure`
-- `scripts/prepare-version.mjs`
-- `scripts/generate-latest-json.mjs`
-- `Cargo.toml`
-
 ## License
 
 This project is licensed under the GNU Affero General Public License v3.0 (AGPLv3).
