@@ -19,7 +19,6 @@ const fileBuffer = await fs.readFile(resolvedBinaryPath);
 const stats = await fs.stat(resolvedBinaryPath);
 
 const fullSha256 = sha256Hex(fileBuffer);
-const headSha256 = sha256Hex(fileBuffer.subarray(0, Math.min(fileBuffer.length, 10 * 1024 * 1024)));
 
 const document = {
   version: releaseVersion,
@@ -28,10 +27,9 @@ const document = {
   pub_date: new Date().toISOString(),
   platforms: {
     [targetTriple]: {
-      r2_url: `${r2PublicBaseUrl}/simprint-runtime/${releaseVersion}/simprint-runtime.exe`,
+      url: `${r2PublicBaseUrl}/simprint-runtime/${releaseVersion}/simprint-runtime.exe`,
       size: stats.size,
       sha256: fullSha256,
-      head_sha256_10mb: headSha256,
     },
   },
 };

@@ -42,9 +42,6 @@ const fileBuffer = await fs.readFile(resolvedBinaryPath);
 const stats = await fs.stat(resolvedBinaryPath);
 
 const fullSha256 = sha256Hex(fileBuffer);
-const headSha256 = sha256Hex(
-  fileBuffer.subarray(0, Math.min(fileBuffer.length, 10 * 1024 * 1024))
-);
 
 const document = {
   version: releaseVersion,
@@ -53,10 +50,9 @@ const document = {
   pub_date: pubDate,
   platforms: {
     [targetTriple]: {
-      r2_url: downloadUrl,
+      url: downloadUrl,
       size: stats.size,
       sha256: fullSha256,
-      head_sha256_10mb: headSha256,
     },
   },
 };
@@ -153,7 +149,7 @@ Required:
   --version           Release version written into latest.json
 
 Download URL:
-  --url               Full download URL written to platforms.<target>.r2_url
+  --url               Full download URL written to platforms.<target>.url
   --base-url          Base public URL used to build the download URL
                      Default: ${DEFAULT_BASE_URL}
 
