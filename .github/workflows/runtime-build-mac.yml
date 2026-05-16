@@ -1,0 +1,85 @@
+# runtime-build-mac — macOS runtime build workflow
+#
+# - Source-level macOS compatibility of the simprint-runtime crate is
+#   assumed but not guaranteed. A compile failure of
+#   `cargo build --release --bin simprint-runtime` on macos-latest
+#   indicates a source-level fix is required as a separate follow-up;
+#   this workflow does not attempt to patch over such failures.
+# - No Cloudflare R2 upload is performed. No latest.json is generated.
+# - Targets only Apple Silicon arm64.
+
+name: runtime-build-mac
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, for example 1.0.0"
+        required: true
+      notes:
+        description: "Release notes stored in latest.json"
+        required: false
+        default: ""
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    timeout-minutes: 60
+    env:
+      VERSION: ${{ github.event.inputs.version || '' }}
+      RELEASE_NOTES: ${{ github.event.inputs.notes || '' }}
+      RELEASE_TAG: ${{ github.ref_name }}
+      TARGET_TRIPLE: aarch64-apple-darwin
+      PROTOCOL_VERSION: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Verify Rust toolchain
+        shell: bash
+        run: |
+          rustc --version
+          cargo --version
+          rustc -vV
+
+      - name: Prepare version from tag
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(node ./scripts/prepare-version.mjs)
+          if [ -z "$version" ]; then
+            echo "::error::Failed to prepare release version"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Build runtime binary
+        run: cargo build --release --bin simprint-runtime
+
+      - name: Publish runtime binary to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          fail_on_unmatched_files: true
+          files: target/release/simprint-runtime
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
